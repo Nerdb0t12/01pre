@@ -1,31 +1,108 @@
-// Create the scene
+// Main.js
+
+// Set up the scene, camera, and renderer
 const scene = new THREE.Scene();
 
-// Create the camera (First-Person Perspective)
+// Camera (Perspective Camera)
 const camera = new THREE.PerspectiveCamera(
   75, window.innerWidth / window.innerHeight, 0.1, 1000
 );
-camera.position.z = 5;
 
-// Create the renderer
+// Renderer
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
-// Ambient Light
+
+// Lighting
 const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
 scene.add(ambientLight);
 
-// Directional Light
 const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
-directionalLight.position.set(0, 10, 0);
+directionalLight.position.set(0, 10, 10);
 scene.add(directionalLight);
-// Sword Geometry
-const swordGeometry = new THREE.CylinderGeometry(0.05, 0.05, 2);
+
+// Floor
+const floorGeometry = new THREE.PlaneGeometry(50, 50);
+const floorMaterial = new THREE.MeshStandardMaterial({ color: 0x808080 });
+const floor = new THREE.Mesh(floorGeometry, floorMaterial);
+floor.rotation.x = - Math.PI / 2; // Rotate to make it horizontal
+floor.position.y = -1;
+scene.add(floor);
+
+// Walls
+const wallMaterial = new THREE.MeshStandardMaterial({ color: 0xdddddd });
+
+// Back Wall
+const backWallGeometry = new THREE.PlaneGeometry(50, 10);
+const backWall = new THREE.Mesh(backWallGeometry, wallMaterial);
+backWall.position.z = -25;
+backWall.position.y = 4;
+scene.add(backWall);
+
+// Left Wall
+const leftWallGeometry = new THREE.PlaneGeometry(50, 10);
+const leftWall = new THREE.Mesh(leftWallGeometry, wallMaterial);
+leftWall.rotation.y = Math.PI / 2;
+leftWall.position.x = -25;
+leftWall.position.y = 4;
+scene.add(leftWall);
+
+// Right Wall
+const rightWallGeometry = new THREE.PlaneGeometry(50, 10);
+const rightWall = new THREE.Mesh(rightWallGeometry, wallMaterial);
+rightWall.rotation.y = - Math.PI / 2;
+rightWall.position.x = 25;
+rightWall.position.y = 4;
+scene.add(rightWall);
+
+// Ceiling (optional)
+const ceilingGeometry = new THREE.PlaneGeometry(50, 50);
+const ceiling = new THREE.Mesh(ceilingGeometry, floorMaterial);
+ceiling.rotation.x = Math.PI / 2;
+ceiling.position.y = 9;
+scene.add(ceiling);
+
+// Player Group
+const player = new THREE.Group();
+player.position.set(0, 0, 0);
+scene.add(player);
+
+// Body
+const bodyGeometry = new THREE.CylinderGeometry(0.5, 0.5, 2);
+const bodyMaterial = new THREE.MeshStandardMaterial({ color: 0x0000ff });
+const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+body.position.y = 1; // Raise above the ground
+player.add(body);
+
+// Head
+const headGeometry = new THREE.SphereGeometry(0.5, 32, 32);
+const headMaterial = new THREE.MeshStandardMaterial({ color: 0xffff00 });
+const head = new THREE.Mesh(headGeometry, headMaterial);
+head.position.y = 2.5; // Place on top of the body
+player.add(head);
+
+// Arm
+const armGeometry = new THREE.CylinderGeometry(0.1, 0.1, 1);
+const armMaterial = new THREE.MeshStandardMaterial({ color: 0xffc0cb });
+const arm = new THREE.Mesh(armGeometry, armMaterial);
+arm.position.set(0.5, 1.5, 0);
+arm.rotation.z = - Math.PI / 4;
+player.add(arm);
+
+// Sword
+const swordGeometry = new THREE.BoxGeometry(0.1, 0.1, 2);
 const swordMaterial = new THREE.MeshStandardMaterial({ color: 0x00ff00 });
 const sword = new THREE.Mesh(swordGeometry, swordMaterial);
-sword.position.set(0, -0.5, -1);
-scene.add(sword);
+sword.position.set(0, -0.5, 0.5);
+sword.rotation.x = Math.PI / 2;
+arm.add(sword);
+
+// Camera Offset
+const cameraOffset = new THREE.Vector3(0, 2, 5);
+
+// Controls
 let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
+let mouseX = 0, mouseY = 0;
 
 document.addEventListener('keydown', (event) => {
   switch(event.key) {
@@ -44,15 +121,13 @@ document.addEventListener('keyup', (event) => {
     case 'd': moveRight = false; break;
   }
 });
-function createRoom() {
-  const roomSize = 20;
-  const geometry = new THREE.BoxGeometry(roomSize, roomSize, roomSize);
-  const material = new THREE.MeshBasicMaterial({ color: 0x808080, side: THREE.BackSide });
-  const room = new THREE.Mesh(geometry, material);
-  scene.add(room);
-}
 
-createRoom();
+document.addEventListener('mousemove', (event) => {
+  mouseX = (event.clientX / window.innerWidth) * 2 - 1;
+  mouseY = - (event.clientY / window.innerHeight) * 2 + 1;
+});
+
+// Fruits and Bombs
 const objects = [];
 
 function createFruit() {
@@ -60,9 +135,9 @@ function createFruit() {
   const material = new THREE.MeshStandardMaterial({ color: 0xff0000 });
   const fruit = new THREE.Mesh(geometry, material);
   fruit.position.set(
-    (Math.random() - 0.5) * 10,
-    (Math.random() - 0.5) * 10,
-    camera.position.z - 20
+    (Math.random() - 0.5) * 10, // Random x position within a range
+    0,                          // Start at floor level
+    player.position.z - 10      // In front of the player
   );
   fruit.isBomb = false;
   scene.add(fruit);
@@ -75,8 +150,8 @@ function createBomb() {
   const bomb = new THREE.Mesh(geometry, material);
   bomb.position.set(
     (Math.random() - 0.5) * 10,
-    (Math.random() - 0.5) * 10,
-    camera.position.z - 20
+    0,
+    player.position.z - 10
   );
   bomb.isBomb = true;
   scene.add(bomb);
@@ -92,17 +167,25 @@ function launchObjects() {
 }
 
 setInterval(launchObjects, 1000);
+
+// Update Objects
 function updateObjects() {
   objects.forEach((obj, index) => {
-    obj.position.z += 0.2;
+    // Move upwards
+    obj.position.y += 0.2;
 
-    // Remove objects that pass the camera
-    if (obj.position.z > camera.position.z + 1) {
+    // Move towards the player (optional)
+    obj.position.z += 0.05;
+
+    // Remove objects that go too high
+    if (obj.position.y > 10) {
       scene.remove(obj);
       objects.splice(index, 1);
     }
   });
 }
+
+// Collision Detection
 function checkCollisions() {
   const swordBox = new THREE.Box3().setFromObject(sword);
 
@@ -124,14 +207,25 @@ function checkCollisions() {
     }
   });
 }
+
+// Animation Loop
 function animate() {
   requestAnimationFrame(animate);
 
   // Move the player
-  if (moveForward) camera.position.z -= 0.1;
-  if (moveBackward) camera.position.z += 0.1;
-  if (moveLeft) camera.position.x -= 0.1;
-  if (moveRight) camera.position.x += 0.1;
+  const speed = 0.1;
+  if (moveForward) player.position.z -= speed;
+  if (moveBackward) player.position.z += speed;
+  if (moveLeft) player.position.x -= speed;
+  if (moveRight) player.position.x += speed;
+
+  // Update the camera to follow the player
+  camera.position.copy(player.position).add(cameraOffset);
+  camera.lookAt(player.position);
+
+  // Update arm rotation based on mouse
+  arm.rotation.z = mouseX * -0.5; // Adjust sensitivity as needed
+  arm.rotation.x = mouseY * 0.5;
 
   // Update objects
   updateObjects();
@@ -143,10 +237,13 @@ function animate() {
 }
 
 animate();
-document.addEventListener('mousemove', (event) => {
-  const mouseX = (event.clientX / window.innerWidth) * 2 - 1;
-  const mouseY = - (event.clientY / window.innerHeight) * 2 + 1;
 
-  sword.position.x = mouseX * 2;
-  sword.position.y = mouseY * 2;
-});
+// Handle Window Resize
+window.addEventListener('resize', onWindowResize, false);
+
+function onWindowResize() {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+
+  renderer.setSize(window.innerWidth, window.innerHeight);
+}
