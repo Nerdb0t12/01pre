@@ -12,7 +12,7 @@
         }
         #gameContainer {
             margin: 20px auto;
-            width: 350px;
+            width: 400px;
         }
         #grid {
             display: grid;
@@ -41,6 +41,24 @@
             width: 100%;
             height: 100%;
             background-color: #ffffff;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+        .asteroid {
+            width: 100%;
+            height: 100%;
+            background-color: #aa0000;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+        .path {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border: 2px dotted #aa0000;
+            box-sizing: border-box;
         }
         #info {
             margin-top: 20px;
@@ -104,9 +122,13 @@
         let spaceshipPosition = { x: 0, y: gridSize - 1 }; // Starts at bottom-left
         let goalPosition = { x: gridSize - 1, y: 0 }; // Top-right corner
 
+        // Moving obstacles
+        let movingObstacles = [];
+
         // Initialize the game grid
         function initGrid() {
             const gridElement = document.getElementById('grid');
+            gridElement.innerHTML = '';
             gridElement.style.gridTemplateColumns = `repeat(${gridSize}, 60px)`;
             gridElement.style.gridTemplateRows = `repeat(${gridSize}, 60px)`;
             grid = [];
@@ -119,14 +141,6 @@
                     cell.dataset.x = x;
                     cell.dataset.y = y;
 
-                    // Randomly place obstacles, energy boosts, and special tiles
-                    let randomNum = Math.random();
-                    if (randomNum < 0.2 && !(x === 0 && y === gridSize - 1) && !(x === gridSize - 1 && y === 0)) {
-                        cell.classList.add('obstacle');
-                    } else if (randomNum >= 0.2 && randomNum < 0.25) {
-                        cell.classList.add('energy');
-                    }
-
                     // Set goal cell
                     if (x === goalPosition.x && y === goalPosition.y) {
                         cell.classList.add('goal');
@@ -137,7 +151,59 @@
                 }
                 grid.push(row);
             }
+            placeMovingObstacles();
             updateSpaceshipPosition();
+        }
+
+        // Place moving obstacles on the grid
+        function placeMovingObstacles() {
+            // Clear existing obstacles
+            movingObstacles = [];
+            // For simplicity, we'll add one moving obstacle that moves horizontally
+            const obstaclePath = [];
+
+            for (let x = 1; x < gridSize - 1; x++) {
+                obstaclePath.push({ x: x, y: 2 }); // Moving along row 2
+                // Mark the path on the grid
+                const cell = grid[2][x];
+                const pathMarker = document.createElement('div');
+                pathMarker.classList.add('path');
+                cell.appendChild(pathMarker);
+            }
+
+            const obstacle = {
+                path: obstaclePath,
+                currentStep: 0,
+                direction: 1 // 1 for forward, -1 for backward
+            };
+            movingObstacles.push(obstacle);
+        }
+
+        // Update moving obstacles' positions
+        function updateMovingObstacles() {
+            movingObstacles.forEach(obstacle => {
+                // Remove existing asteroid
+                const prevPos = obstacle.path[obstacle.currentStep];
+                const prevCell = grid[prevPos.y][prevPos.x];
+                const asteroidEl = prevCell.querySelector('.asteroid');
+                if (asteroidEl) {
+                    asteroidEl.remove();
+                }
+
+                // Move to next position
+                obstacle.currentStep += obstacle.direction;
+                if (obstacle.currentStep >= obstacle.path.length || obstacle.currentStep < 0) {
+                    // Reverse direction
+                    obstacle.direction *= -1;
+                    obstacle.currentStep += obstacle.direction * 2;
+                }
+
+                const newPos = obstacle.path[obstacle.currentStep];
+                const newCell = grid[newPos.y][newPos.x];
+                const asteroid = document.createElement('div');
+                asteroid.classList.add('asteroid');
+                newCell.appendChild(asteroid);
+            });
         }
 
         // Update the spaceship's position on the grid
@@ -150,36 +216,51 @@
             spaceship.classList.add('spaceship');
             cell.appendChild(spaceship);
 
+            checkCollision();
             checkCurrentCell();
         }
 
-        // Check the current cell for obstacles or energy boosts
+        // Check for collisions with moving obstacles
+        function checkCollision() {
+            let collision = false;
+            movingObstacles.forEach(obstacle => {
+                const obstaclePos = obstacle.path[obstacle.currentStep];
+                if (spaceshipPosition.x === obstaclePos.x && spaceshipPosition.y === obstaclePos.y) {
+                    collision = true;
+                }
+            });
+
+            if (collision) {
+                energy -= 10; // Penalty for collision
+                score -= 10;
+                updateEnergyDisplay();
+                document.getElementById('message').innerText = 'Collided with an asteroid! -10 Energy';
+                if (energy <= 0) {
+                    endGame(false);
+                }
+            }
+        }
+
+        // Check the current cell for energy boosts or goal
         function checkCurrentCell() {
             const cell = grid[spaceshipPosition.y][spaceshipPosition.x];
 
-            if (cell.classList.contains('obstacle')) {
-                energy -= 10; // Penalty for hitting obstacle
-                score -= 10;
-                updateEnergy();
-                document.getElementById('message').innerText = 'Hit an obstacle! -10 Energy';
-                cell.classList.remove('obstacle'); // Remove obstacle after hitting
-            } else if (cell.classList.contains('energy')) {
+            if (cell.classList.contains('energy')) {
                 energy += 10; // Gain energy
                 if (energy > initialEnergy) energy = initialEnergy;
-                updateEnergy();
+                updateEnergyDisplay();
                 document.getElementById('message').innerText = 'Found Energy Boost! +10 Energy';
                 cell.classList.remove('energy'); // Remove energy boost after collecting
             } else if (cell.classList.contains('goal')) {
                 endGame(true);
             } else {
+                // No message
                 document.getElementById('message').innerText = '';
             }
         }
 
         // Update energy and score displays
-        function updateEnergy() {
-            energy -= energyPerMove;
-            score -= energyPerMove;
+        function updateEnergyDisplay() {
             document.getElementById('energyText').innerText = energy;
             document.getElementById('scoreText').innerText = score;
             const energyLevel = document.getElementById('energyLevel');
@@ -192,10 +273,16 @@
             } else {
                 energyLevel.style.backgroundColor = 'red';
             }
+        }
 
+        // Update energy and score after each move
+        function updateEnergy() {
+            energy -= energyPerMove;
+            score -= energyPerMove;
             if (energy <= 0) {
                 endGame(false);
             }
+            updateEnergyDisplay();
         }
 
         // End the game
@@ -206,6 +293,7 @@
             } else {
                 document.getElementById('message').innerText = 'Out of energy! Game Over!';
             }
+            clearInterval(obstacleInterval);
         }
 
         // Disable movement buttons
@@ -250,13 +338,26 @@
         }
 
         // Event listeners for buttons
-        document.getElementById('upButton').addEventListener('click', moveUp);
-        document.getElementById('downButton').addEventListener('click', moveDown);
-        document.getElementById('leftButton').addEventListener('click', moveLeft);
-        document.getElementById('rightButton').addEventListener('click', moveRight);
+        document.getElementById('upButton').addEventListener('click', () => { moveUp(); nextTurn(); });
+        document.getElementById('downButton').addEventListener('click', () => { moveDown(); nextTurn(); });
+        document.getElementById('leftButton').addEventListener('click', () => { moveLeft(); nextTurn(); });
+        document.getElementById('rightButton').addEventListener('click', () => { moveRight(); nextTurn(); });
+
+        // Proceed to next turn
+        function nextTurn() {
+            updateMovingObstacles();
+            updateSpaceshipPosition();
+        }
 
         // Initialize the game
         initGrid();
+        updateMovingObstacles();
+
+        // Start obstacle movement
+        const obstacleInterval = setInterval(() => {
+            updateMovingObstacles();
+            updateSpaceshipPosition();
+        }, 1000); // Obstacles move every 1 second
     </script>
 </body>
 </html>
