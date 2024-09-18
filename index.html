@@ -38,6 +38,7 @@
             position: absolute;
             top: 0;
             left: 0;
+            z-index: 2;
         }
         .asteroid {
             width: 100%;
@@ -46,6 +47,7 @@
             position: absolute;
             top: 0;
             left: 0;
+            z-index: 1;
         }
         .path {
             position: absolute;
@@ -156,7 +158,7 @@
             obstacleInterval = setInterval(() => {
                 updateMovingObstacles();
                 updateSpaceshipPosition();
-            }, 1000); // Obstacles move every 1 second
+            }, 1000 - (level * 50)); // Obstacles move faster as levels increase
         }
 
         // Initialize the game grid
@@ -195,11 +197,11 @@
             // Number of moving obstacles based on level
             let numberOfObstacles;
             if (level <= 5) {
-                numberOfObstacles = 1;
+                numberOfObstacles = 2;
             } else if (level <= 10) {
-                numberOfObstacles = 3;
+                numberOfObstacles = 4;
             } else {
-                numberOfObstacles = 5;
+                numberOfObstacles = 6;
             }
 
             movingObstacles = [];
@@ -207,31 +209,26 @@
             for (let i = 0; i < numberOfObstacles; i++) {
                 const obstaclePath = [];
 
-                // Define obstacle paths based on level
-                if (level <= 5) {
-                    // Simple back-and-forth horizontal movement
-                    let y = Math.floor(gridSize / 2);
-                    for (let x = 1; x < gridSize - 1; x++) {
+                // Generate random paths
+                const pathType = Math.floor(Math.random() * 3); // 0: horizontal, 1: vertical, 2: diagonal
+                let startX, startY;
+
+                if (pathType === 0) { // Horizontal path
+                    startY = Math.floor(Math.random() * gridSize);
+                    for (let x = 0; x < gridSize; x++) {
+                        obstaclePath.push({ x: x, y: startY });
+                    }
+                } else if (pathType === 1) { // Vertical path
+                    startX = Math.floor(Math.random() * gridSize);
+                    for (let y = 0; y < gridSize; y++) {
+                        obstaclePath.push({ x: startX, y: y });
+                    }
+                } else { // Diagonal path
+                    startX = Math.floor(Math.random() * (gridSize - 3)) + 1;
+                    startY = 0;
+                    let x = startX;
+                    for (let y = 0; y < gridSize && x < gridSize; y++, x++) {
                         obstaclePath.push({ x: x, y: y });
-                    }
-                } else if (level <= 10) {
-                    // Diagonal movement
-                    for (let n = 1; n < gridSize - 1; n++) {
-                        obstaclePath.push({ x: n, y: n });
-                    }
-                } else {
-                    // Complex looping path
-                    for (let x = 1; x < gridSize - 1; x++) {
-                        obstaclePath.push({ x: x, y: 1 });
-                    }
-                    for (let y = 2; y < gridSize - 1; y++) {
-                        obstaclePath.push({ x: gridSize - 2, y: y });
-                    }
-                    for (let x = gridSize - 3; x > 0; x--) {
-                        obstaclePath.push({ x: x, y: gridSize - 2 });
-                    }
-                    for (let y = gridSize - 3; y > 1; y--) {
-                        obstaclePath.push({ x: 1, y: y });
                     }
                 }
 
@@ -417,16 +414,10 @@
         }
 
         // Event listeners for buttons
-        document.getElementById('upButton').addEventListener('click', () => { moveUp(); nextTurn(); });
-        document.getElementById('downButton').addEventListener('click', () => { moveDown(); nextTurn(); });
-        document.getElementById('leftButton').addEventListener('click', () => { moveLeft(); nextTurn(); });
-        document.getElementById('rightButton').addEventListener('click', () => { moveRight(); nextTurn(); });
-
-        // Proceed to next turn
-        function nextTurn() {
-            updateMovingObstacles();
-            updateSpaceshipPosition();
-        }
+        document.getElementById('upButton').addEventListener('click', moveUp);
+        document.getElementById('downButton').addEventListener('click', moveDown);
+        document.getElementById('leftButton').addEventListener('click', moveLeft);
+        document.getElementById('rightButton').addEventListener('click', moveRight);
 
         // Start the game
         initGame();
