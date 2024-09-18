@@ -28,12 +28,6 @@
             border: 1px solid #333;
             position: relative;
         }
-        .cell.obstacle {
-            background-color: #555;
-        }
-        .cell.energy {
-            background-color: #006600;
-        }
         .cell.goal {
             background-color: #003366;
         }
@@ -100,6 +94,7 @@
             <div id="energyBar">
                 <div id="energyLevel"></div>
             </div>
+            <div>Level: <span id="levelText">1</span></div>
             <div>Energy: <span id="energyText">50</span></div>
             <div>Score: <span id="scoreText">100</span></div>
             <div id="message"></div>
@@ -113,17 +108,56 @@
     </div>
     <script>
         // Game variables
-        const gridSize = 5;
+        let level = 1;
+        let gridSize = 5;
         const initialEnergy = 50;
         const energyPerMove = 1;
         let energy = initialEnergy;
         let score = 100;
         let grid = [];
-        let spaceshipPosition = { x: 0, y: gridSize - 1 }; // Starts at bottom-left
-        let goalPosition = { x: gridSize - 1, y: 0 }; // Top-right corner
+        let spaceshipPosition = { x: 0, y: 0 }; // Will be set in initGame()
+        let goalPosition = { x: 0, y: 0 }; // Will be set in initGame()
 
         // Moving obstacles
         let movingObstacles = [];
+        let obstacleInterval;
+
+        // Initialize the game
+        function initGame() {
+            // Adjust grid size based on level
+            if (level <= 5) {
+                gridSize = 5;
+            } else if (level <= 10) {
+                gridSize = 6;
+            } else {
+                gridSize = 7;
+            }
+            // Reset game variables
+            energy = initialEnergy;
+            score = 100;
+            grid = [];
+            movingObstacles = [];
+            spaceshipPosition = { x: 0, y: gridSize - 1 }; // Starts at bottom-left
+            goalPosition = { x: gridSize - 1, y: 0 }; // Top-right corner
+
+            // Update level display
+            document.getElementById('levelText').innerText = level;
+
+            // Clear previous interval if any
+            if (obstacleInterval) {
+                clearInterval(obstacleInterval);
+            }
+
+            initGrid();
+            updateEnergyDisplay();
+            enableButtons();
+
+            // Start obstacle movement
+            obstacleInterval = setInterval(() => {
+                updateMovingObstacles();
+                updateSpaceshipPosition();
+            }, 1000); // Obstacles move every 1 second
+        }
 
         // Initialize the game grid
         function initGrid() {
@@ -131,6 +165,7 @@
             gridElement.innerHTML = '';
             gridElement.style.gridTemplateColumns = `repeat(${gridSize}, 60px)`;
             gridElement.style.gridTemplateRows = `repeat(${gridSize}, 60px)`;
+            gridElement.style.width = `${gridSize * 65}px`; // Adjust container width
             grid = [];
 
             for (let y = 0; y < gridSize; y++) {
@@ -157,26 +192,66 @@
 
         // Place moving obstacles on the grid
         function placeMovingObstacles() {
-            // Clear existing obstacles
-            movingObstacles = [];
-            // For simplicity, we'll add one moving obstacle that moves horizontally
-            const obstaclePath = [];
-
-            for (let x = 1; x < gridSize - 1; x++) {
-                obstaclePath.push({ x: x, y: 2 }); // Moving along row 2
-                // Mark the path on the grid
-                const cell = grid[2][x];
-                const pathMarker = document.createElement('div');
-                pathMarker.classList.add('path');
-                cell.appendChild(pathMarker);
+            // Number of moving obstacles based on level
+            let numberOfObstacles;
+            if (level <= 5) {
+                numberOfObstacles = 1;
+            } else if (level <= 10) {
+                numberOfObstacles = 3;
+            } else {
+                numberOfObstacles = 5;
             }
 
-            const obstacle = {
-                path: obstaclePath,
-                currentStep: 0,
-                direction: 1 // 1 for forward, -1 for backward
-            };
-            movingObstacles.push(obstacle);
+            movingObstacles = [];
+
+            for (let i = 0; i < numberOfObstacles; i++) {
+                const obstaclePath = [];
+
+                // Define obstacle paths based on level
+                if (level <= 5) {
+                    // Simple back-and-forth horizontal movement
+                    let y = Math.floor(gridSize / 2);
+                    for (let x = 1; x < gridSize - 1; x++) {
+                        obstaclePath.push({ x: x, y: y });
+                    }
+                } else if (level <= 10) {
+                    // Diagonal movement
+                    for (let n = 1; n < gridSize - 1; n++) {
+                        obstaclePath.push({ x: n, y: n });
+                    }
+                } else {
+                    // Complex looping path
+                    for (let x = 1; x < gridSize - 1; x++) {
+                        obstaclePath.push({ x: x, y: 1 });
+                    }
+                    for (let y = 2; y < gridSize - 1; y++) {
+                        obstaclePath.push({ x: gridSize - 2, y: y });
+                    }
+                    for (let x = gridSize - 3; x > 0; x--) {
+                        obstaclePath.push({ x: x, y: gridSize - 2 });
+                    }
+                    for (let y = gridSize - 3; y > 1; y--) {
+                        obstaclePath.push({ x: 1, y: y });
+                    }
+                }
+
+                // Mark the path on the grid
+                obstaclePath.forEach(pos => {
+                    const cell = grid[pos.y][pos.x];
+                    if (!cell.querySelector('.path')) {
+                        const pathMarker = document.createElement('div');
+                        pathMarker.classList.add('path');
+                        cell.appendChild(pathMarker);
+                    }
+                });
+
+                const obstacle = {
+                    path: obstaclePath,
+                    currentStep: Math.floor(Math.random() * obstaclePath.length),
+                    direction: 1 // 1 for forward, -1 for backward
+                };
+                movingObstacles.push(obstacle);
+            }
         }
 
         // Update moving obstacles' positions
@@ -231,27 +306,18 @@
             });
 
             if (collision) {
-                energy -= 10; // Penalty for collision
-                score -= 10;
-                updateEnergyDisplay();
-                document.getElementById('message').innerText = 'Collided with an asteroid! -10 Energy';
-                if (energy <= 0) {
-                    endGame(false);
-                }
+                // Immediate game over
+                document.getElementById('message').innerText = 'You collided with an asteroid! Game Over!';
+                endGame(false);
             }
         }
 
-        // Check the current cell for energy boosts or goal
+        // Check the current cell for goal
         function checkCurrentCell() {
             const cell = grid[spaceshipPosition.y][spaceshipPosition.x];
 
-            if (cell.classList.contains('energy')) {
-                energy += 10; // Gain energy
-                if (energy > initialEnergy) energy = initialEnergy;
-                updateEnergyDisplay();
-                document.getElementById('message').innerText = 'Found Energy Boost! +10 Energy';
-                cell.classList.remove('energy'); // Remove energy boost after collecting
-            } else if (cell.classList.contains('goal')) {
+            if (cell.classList.contains('goal')) {
+                // Level completed
                 endGame(true);
             } else {
                 // No message
@@ -288,12 +354,17 @@
         // End the game
         function endGame(won) {
             disableButtons();
-            if (won) {
-                document.getElementById('message').innerText = 'You reached the goal!';
-            } else {
-                document.getElementById('message').innerText = 'Out of energy! Game Over!';
-            }
             clearInterval(obstacleInterval);
+            if (won) {
+                document.getElementById('message').innerText = 'Level Completed!';
+                // Proceed to next level after a short delay
+                setTimeout(() => {
+                    level++;
+                    initGame();
+                }, 2000);
+            } else {
+                document.getElementById('message').innerText = 'Game Over!';
+            }
         }
 
         // Disable movement buttons
@@ -302,6 +373,14 @@
             document.getElementById('downButton').disabled = true;
             document.getElementById('leftButton').disabled = true;
             document.getElementById('rightButton').disabled = true;
+        }
+
+        // Enable movement buttons
+        function enableButtons() {
+            document.getElementById('upButton').disabled = false;
+            document.getElementById('downButton').disabled = false;
+            document.getElementById('leftButton').disabled = false;
+            document.getElementById('rightButton').disabled = false;
         }
 
         // Movement functions
@@ -349,15 +428,8 @@
             updateSpaceshipPosition();
         }
 
-        // Initialize the game
-        initGrid();
-        updateMovingObstacles();
-
-        // Start obstacle movement
-        const obstacleInterval = setInterval(() => {
-            updateMovingObstacles();
-            updateSpaceshipPosition();
-        }, 1000); // Obstacles move every 1 second
+        // Start the game
+        initGame();
     </script>
 </body>
 </html>
