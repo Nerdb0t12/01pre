@@ -1,16 +1,138 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <title>Fruit Slicing Game</title>
-  <style>
-    body { margin: 0; overflow: hidden; }
-  </style>
+    <title>Space Passage Game</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: black;
+        }
+        #gameCanvas {
+            display: block;
+            margin: 0 auto;
+            background-color: black;
+        }
+    </style>
 </head>
 <body>
-  <!-- Include Three.js from CDN -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-  <!-- Your main JavaScript file -->
-  <script src="main.js"></script>
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+    <script>
+        // Get the canvas and context
+        var canvas = document.getElementById("gameCanvas");
+        var ctx = canvas.getContext("2d");
+
+        // Spaceship object
+        var spaceship = {
+            x: canvas.width / 2 - 20,
+            y: canvas.height - 60,
+            width: 40,
+            height: 40,
+            speed: 7,
+            movingLeft: false,
+            movingRight: false
+        };
+
+        // Array to hold asteroids
+        var asteroids = [];
+        var asteroidFrequency = 50; // Adjust frequency of asteroids
+        var frameCount = 0;
+        var gameOver = false;
+
+        // Event listeners for key presses
+        document.addEventListener("keydown", function(e) {
+            if (e.key === "ArrowLeft") {
+                spaceship.movingLeft = true;
+            } else if (e.key === "ArrowRight") {
+                spaceship.movingRight = true;
+            }
+        });
+
+        document.addEventListener("keyup", function(e) {
+            if (e.key === "ArrowLeft") {
+                spaceship.movingLeft = false;
+            } else if (e.key === "ArrowRight") {
+                spaceship.movingRight = false;
+            }
+        });
+
+        // Function to draw the spaceship
+        function drawSpaceship() {
+            ctx.fillStyle = "white";
+            ctx.fillRect(spaceship.x, spaceship.y, spaceship.width, spaceship.height);
+        }
+
+        // Function to create asteroids
+        function createAsteroid() {
+            var size = Math.random() * 30 + 20;
+            var xPosition = Math.random() * (canvas.width - size);
+            var speed = Math.random() * 3 + 2;
+            asteroids.push({ x: xPosition, y: -size, size: size, speed: speed });
+        }
+
+        // Function to draw asteroids
+        function drawAsteroids() {
+            ctx.fillStyle = "gray";
+            asteroids.forEach(function(asteroid) {
+                ctx.beginPath();
+                ctx.arc(asteroid.x + asteroid.size / 2, asteroid.y + asteroid.size / 2, asteroid.size / 2, 0, Math.PI * 2);
+                ctx.fill();
+                asteroid.y += asteroid.speed;
+            });
+        }
+
+        // Function to detect collisions
+        function detectCollisions() {
+            asteroids.forEach(function(asteroid) {
+                if (
+                    spaceship.x < asteroid.x + asteroid.size &&
+                    spaceship.x + spaceship.width > asteroid.x &&
+                    spaceship.y < asteroid.y + asteroid.size &&
+                    spaceship.y + spaceship.height > asteroid.y
+                ) {
+                    gameOver = true;
+                }
+            });
+        }
+
+        // Function to update game state
+        function updateGame() {
+            if (spaceship.movingLeft && spaceship.x > 0) {
+                spaceship.x -= spaceship.speed;
+            }
+            if (spaceship.movingRight && spaceship.x < canvas.width - spaceship.width) {
+                spaceship.x += spaceship.speed;
+            }
+
+            frameCount++;
+            if (frameCount % asteroidFrequency === 0) {
+                createAsteroid();
+            }
+
+            asteroids = asteroids.filter(function(asteroid) {
+                return asteroid.y < canvas.height + asteroid.size;
+            });
+
+            detectCollisions();
+        }
+
+        // Main game loop
+        function gameLoop() {
+            if (gameOver) {
+                alert("Game Over!");
+                document.location.reload();
+                return;
+            }
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawSpaceship();
+            drawAsteroids();
+            updateGame();
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Start the game
+        gameLoop();
+    </script>
 </body>
 </html>
