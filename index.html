@@ -1,138 +1,262 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Space Passage Game</title>
+    <title>Galactic Path</title>
     <style>
         body {
             margin: 0;
-            overflow: hidden;
             background-color: black;
+            color: white;
+            font-family: Arial, sans-serif;
+            text-align: center;
         }
-        #gameCanvas {
-            display: block;
-            margin: 0 auto;
-            background-color: black;
+        #gameContainer {
+            margin: 20px auto;
+            width: 350px;
+        }
+        #grid {
+            display: grid;
+            grid-template-columns: repeat(5, 60px);
+            grid-template-rows: repeat(5, 60px);
+            gap: 5px;
+            justify-content: center;
+        }
+        .cell {
+            width: 60px;
+            height: 60px;
+            background-color: #1a1a1a;
+            border: 1px solid #333;
+            position: relative;
+        }
+        .cell.obstacle {
+            background-color: #555;
+        }
+        .cell.energy {
+            background-color: #006600;
+        }
+        .cell.goal {
+            background-color: #003366;
+        }
+        .spaceship {
+            width: 100%;
+            height: 100%;
+            background-color: #ffffff;
+        }
+        #info {
+            margin-top: 20px;
+        }
+        #energyBar {
+            width: 200px;
+            height: 20px;
+            background-color: #333;
+            margin: 10px auto;
+            position: relative;
+        }
+        #energyLevel {
+            height: 100%;
+            background-color: green;
+            width: 100%;
+        }
+        #message {
+            margin-top: 10px;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #0066cc;
+            border: none;
+            color: white;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:disabled {
+            background-color: #333;
+            cursor: not-allowed;
         }
     </style>
 </head>
 <body>
-    <canvas id="gameCanvas" width="800" height="600"></canvas>
+    <h1>Galactic Path</h1>
+    <div id="gameContainer">
+        <div id="grid"></div>
+        <div id="info">
+            <div id="energyBar">
+                <div id="energyLevel"></div>
+            </div>
+            <div>Energy: <span id="energyText">50</span></div>
+            <div>Score: <span id="scoreText">100</span></div>
+            <div id="message"></div>
+            <div>
+                <button id="upButton">Up</button>
+                <button id="downButton">Down</button>
+                <button id="leftButton">Left</button>
+                <button id="rightButton">Right</button>
+            </div>
+        </div>
+    </div>
     <script>
-        // Get the canvas and context
-        var canvas = document.getElementById("gameCanvas");
-        var ctx = canvas.getContext("2d");
+        // Game variables
+        const gridSize = 5;
+        const initialEnergy = 50;
+        const energyPerMove = 1;
+        let energy = initialEnergy;
+        let score = 100;
+        let grid = [];
+        let spaceshipPosition = { x: 0, y: gridSize - 1 }; // Starts at bottom-left
+        let goalPosition = { x: gridSize - 1, y: 0 }; // Top-right corner
 
-        // Spaceship object
-        var spaceship = {
-            x: canvas.width / 2 - 20,
-            y: canvas.height - 60,
-            width: 40,
-            height: 40,
-            speed: 7,
-            movingLeft: false,
-            movingRight: false
-        };
+        // Initialize the game grid
+        function initGrid() {
+            const gridElement = document.getElementById('grid');
+            gridElement.style.gridTemplateColumns = `repeat(${gridSize}, 60px)`;
+            gridElement.style.gridTemplateRows = `repeat(${gridSize}, 60px)`;
+            grid = [];
 
-        // Array to hold asteroids
-        var asteroids = [];
-        var asteroidFrequency = 50; // Adjust frequency of asteroids
-        var frameCount = 0;
-        var gameOver = false;
+            for (let y = 0; y < gridSize; y++) {
+                let row = [];
+                for (let x = 0; x < gridSize; x++) {
+                    const cell = document.createElement('div');
+                    cell.classList.add('cell');
+                    cell.dataset.x = x;
+                    cell.dataset.y = y;
 
-        // Event listeners for key presses
-        document.addEventListener("keydown", function(e) {
-            if (e.key === "ArrowLeft") {
-                spaceship.movingLeft = true;
-            } else if (e.key === "ArrowRight") {
-                spaceship.movingRight = true;
-            }
-        });
+                    // Randomly place obstacles, energy boosts, and special tiles
+                    let randomNum = Math.random();
+                    if (randomNum < 0.2 && !(x === 0 && y === gridSize - 1) && !(x === gridSize - 1 && y === 0)) {
+                        cell.classList.add('obstacle');
+                    } else if (randomNum >= 0.2 && randomNum < 0.25) {
+                        cell.classList.add('energy');
+                    }
 
-        document.addEventListener("keyup", function(e) {
-            if (e.key === "ArrowLeft") {
-                spaceship.movingLeft = false;
-            } else if (e.key === "ArrowRight") {
-                spaceship.movingRight = false;
-            }
-        });
+                    // Set goal cell
+                    if (x === goalPosition.x && y === goalPosition.y) {
+                        cell.classList.add('goal');
+                    }
 
-        // Function to draw the spaceship
-        function drawSpaceship() {
-            ctx.fillStyle = "white";
-            ctx.fillRect(spaceship.x, spaceship.y, spaceship.width, spaceship.height);
-        }
-
-        // Function to create asteroids
-        function createAsteroid() {
-            var size = Math.random() * 30 + 20;
-            var xPosition = Math.random() * (canvas.width - size);
-            var speed = Math.random() * 3 + 2;
-            asteroids.push({ x: xPosition, y: -size, size: size, speed: speed });
-        }
-
-        // Function to draw asteroids
-        function drawAsteroids() {
-            ctx.fillStyle = "gray";
-            asteroids.forEach(function(asteroid) {
-                ctx.beginPath();
-                ctx.arc(asteroid.x + asteroid.size / 2, asteroid.y + asteroid.size / 2, asteroid.size / 2, 0, Math.PI * 2);
-                ctx.fill();
-                asteroid.y += asteroid.speed;
-            });
-        }
-
-        // Function to detect collisions
-        function detectCollisions() {
-            asteroids.forEach(function(asteroid) {
-                if (
-                    spaceship.x < asteroid.x + asteroid.size &&
-                    spaceship.x + spaceship.width > asteroid.x &&
-                    spaceship.y < asteroid.y + asteroid.size &&
-                    spaceship.y + spaceship.height > asteroid.y
-                ) {
-                    gameOver = true;
+                    gridElement.appendChild(cell);
+                    row.push(cell);
                 }
-            });
+                grid.push(row);
+            }
+            updateSpaceshipPosition();
         }
 
-        // Function to update game state
-        function updateGame() {
-            if (spaceship.movingLeft && spaceship.x > 0) {
-                spaceship.x -= spaceship.speed;
-            }
-            if (spaceship.movingRight && spaceship.x < canvas.width - spaceship.width) {
-                spaceship.x += spaceship.speed;
-            }
+        // Update the spaceship's position on the grid
+        function updateSpaceshipPosition() {
+            // Remove existing spaceship
+            document.querySelectorAll('.spaceship').forEach(el => el.remove());
 
-            frameCount++;
-            if (frameCount % asteroidFrequency === 0) {
-                createAsteroid();
-            }
+            const cell = grid[spaceshipPosition.y][spaceshipPosition.x];
+            const spaceship = document.createElement('div');
+            spaceship.classList.add('spaceship');
+            cell.appendChild(spaceship);
 
-            asteroids = asteroids.filter(function(asteroid) {
-                return asteroid.y < canvas.height + asteroid.size;
-            });
-
-            detectCollisions();
+            checkCurrentCell();
         }
 
-        // Main game loop
-        function gameLoop() {
-            if (gameOver) {
-                alert("Game Over!");
-                document.location.reload();
-                return;
-            }
+        // Check the current cell for obstacles or energy boosts
+        function checkCurrentCell() {
+            const cell = grid[spaceshipPosition.y][spaceshipPosition.x];
 
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            drawSpaceship();
-            drawAsteroids();
-            updateGame();
-            requestAnimationFrame(gameLoop);
+            if (cell.classList.contains('obstacle')) {
+                energy -= 10; // Penalty for hitting obstacle
+                score -= 10;
+                updateEnergy();
+                document.getElementById('message').innerText = 'Hit an obstacle! -10 Energy';
+                cell.classList.remove('obstacle'); // Remove obstacle after hitting
+            } else if (cell.classList.contains('energy')) {
+                energy += 10; // Gain energy
+                if (energy > initialEnergy) energy = initialEnergy;
+                updateEnergy();
+                document.getElementById('message').innerText = 'Found Energy Boost! +10 Energy';
+                cell.classList.remove('energy'); // Remove energy boost after collecting
+            } else if (cell.classList.contains('goal')) {
+                endGame(true);
+            } else {
+                document.getElementById('message').innerText = '';
+            }
         }
 
-        // Start the game
-        gameLoop();
+        // Update energy and score displays
+        function updateEnergy() {
+            energy -= energyPerMove;
+            score -= energyPerMove;
+            document.getElementById('energyText').innerText = energy;
+            document.getElementById('scoreText').innerText = score;
+            const energyLevel = document.getElementById('energyLevel');
+            const energyPercentage = (energy / initialEnergy) * 100;
+            energyLevel.style.width = energyPercentage + '%';
+            if (energyPercentage > 60) {
+                energyLevel.style.backgroundColor = 'green';
+            } else if (energyPercentage > 30) {
+                energyLevel.style.backgroundColor = 'yellow';
+            } else {
+                energyLevel.style.backgroundColor = 'red';
+            }
+
+            if (energy <= 0) {
+                endGame(false);
+            }
+        }
+
+        // End the game
+        function endGame(won) {
+            disableButtons();
+            if (won) {
+                document.getElementById('message').innerText = 'You reached the goal!';
+            } else {
+                document.getElementById('message').innerText = 'Out of energy! Game Over!';
+            }
+        }
+
+        // Disable movement buttons
+        function disableButtons() {
+            document.getElementById('upButton').disabled = true;
+            document.getElementById('downButton').disabled = true;
+            document.getElementById('leftButton').disabled = true;
+            document.getElementById('rightButton').disabled = true;
+        }
+
+        // Movement functions
+        function moveUp() {
+            if (spaceshipPosition.y > 0) {
+                spaceshipPosition.y -= 1;
+                updateSpaceshipPosition();
+                updateEnergy();
+            }
+        }
+
+        function moveDown() {
+            if (spaceshipPosition.y < gridSize - 1) {
+                spaceshipPosition.y += 1;
+                updateSpaceshipPosition();
+                updateEnergy();
+            }
+        }
+
+        function moveLeft() {
+            if (spaceshipPosition.x > 0) {
+                spaceshipPosition.x -= 1;
+                updateSpaceshipPosition();
+                updateEnergy();
+            }
+        }
+
+        function moveRight() {
+            if (spaceshipPosition.x < gridSize - 1) {
+                spaceshipPosition.x += 1;
+                updateSpaceshipPosition();
+                updateEnergy();
+            }
+        }
+
+        // Event listeners for buttons
+        document.getElementById('upButton').addEventListener('click', moveUp);
+        document.getElementById('downButton').addEventListener('click', moveDown);
+        document.getElementById('leftButton').addEventListener('click', moveLeft);
+        document.getElementById('rightButton').addEventListener('click', moveRight);
+
+        // Initialize the game
+        initGrid();
     </script>
 </body>
 </html>
