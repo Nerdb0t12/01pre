@@ -33,8 +33,7 @@
             align-items: center;
             height: 100%;
             box-sizing: border-box;
-        }
-        
+            justify-content: center; /* Center the content vertically */
         }
         h1 {
             font-size: 36px;
@@ -164,9 +163,7 @@
 <body>
     <div class="cosmic-bg"></div>
     <div class="container">
-        <div class="logo-container">
-            <img src="cosmic_brain_logo.png" alt="Cosmic Brain Logo" class="logo">
-        </div>
+        <!-- Removed the logo section -->
         <h1>Galactic Path</h1>
         <p class="tagline">Navigate your spaceship through the cosmos!</p>
         <div id="gameContainer">
@@ -264,7 +261,7 @@
             obstacleInterval = setInterval(() => {
                 updateMovingObstacles();
                 updateSpaceshipPosition();
-            }, 1000 - (level * 50)); // Obstacles move faster as levels increase
+            }, Math.max(300, 1000 - (level * 50))); // Obstacles move faster as levels increase
         }
 
         // Initialize the game grid
