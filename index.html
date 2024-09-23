@@ -1,19 +1,22 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <!-- Meta and Title -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Cosmic Brain - Galactic Path</title>
+    <title>Galactic Path</title>
+
+    <!-- Styles -->
     <style>
-        /* Existing styles from your UI */
+        /* Base Styles */
         body, html {
             font-family: Arial, sans-serif;
             margin: 0;
             padding: 0;
             height: 100%;
-            overflow: hidden;
             background-color: #0a0a2a;
             color: #ffffff;
+            overflow: hidden;
         }
         .cosmic-bg {
             position: fixed;
@@ -24,6 +27,11 @@
             background: radial-gradient(circle at center, #1a1a4a 0%, #0a0a2a 100%);
             z-index: -1;
         }
+        .scroll-container {
+            height: 100%;
+            overflow-y: auto;
+            scroll-behavior: smooth;
+        }
         .container {
             max-width: 800px;
             margin: 0 auto;
@@ -31,23 +39,44 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            height: 100%;
+            min-height: 100%;
             box-sizing: border-box;
-            justify-content: center; /* Center the content vertically */
         }
         h1 {
-            font-size: 36px;
+            font-size: 48px;
             font-weight: bold;
-            margin: 10px 0;
+            margin: 20px 0;
             text-align: center;
-        }
-        .tagline {
-            font-size: 18px;
             color: #9d8df1;
-            margin-bottom: 20px;
-            text-align: center;
+            text-shadow: 0 0 10px rgba(157, 141, 241, 0.7);
         }
-        /* Styles for the game */
+        .instructions {
+            font-size: 24px;
+            margin: 20px 0;
+            text-align: center;
+            color: #ff6b6b;
+            background-color: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 0 15px rgba(255, 107, 107, 0.3);
+        }
+        /* Game Info Styles */
+        .game-info {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            margin: 20px 0;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 10px 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 15px rgba(157, 141, 241, 0.3);
+        }
+        .score, .level {
+            font-size: 24px;
+            color: #ff6b6b;
+            font-weight: bold;
+        }
+        /* Grid Styles */
         #gameContainer {
             width: 100%;
             max-width: 400px;
@@ -64,34 +93,42 @@
         .cell {
             width: 60px;
             height: 60px;
-            background-color: rgba(26, 26, 74, 0.8);
+            background-color: rgba(255, 255, 255, 0.1);
             border: 1px solid #333;
             position: relative;
-            border-radius: 5px;
+            border-radius: 10px;
             overflow: hidden;
+            box-shadow: 0 0 10px rgba(157, 141, 241, 0.2);
         }
         .cell.goal {
-            background-color: #003366;
+            background-color: #9d8df1;
         }
+        /* Spaceship and Asteroid Styles */
         .spaceship {
             width: 100%;
             height: 100%;
-            background-image: url('spaceship.png'); /* Use your spaceship image */
-            background-size: cover;
+            background-color: #ff6b6b;
+            border-radius: 50%;
             position: absolute;
             top: 0;
             left: 0;
             z-index: 2;
+            box-shadow: 0 0 15px rgba(255, 107, 107, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
         }
         .asteroid {
             width: 100%;
             height: 100%;
-            background-image: url('asteroid.png'); /* Use your asteroid image */
-            background-size: cover;
+            background-color: #555;
+            border-radius: 10px;
             position: absolute;
             top: 0;
             left: 0;
             z-index: 1;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5);
         }
         .path {
             position: absolute;
@@ -99,57 +136,42 @@
             height: 100%;
             border: 2px dotted rgba(170, 0, 0, 0.7);
             box-sizing: border-box;
-            border-radius: 5px;
-        }
-        #info {
-            margin-top: 20px;
-            text-align: center;
-        }
-        #energyBar {
-            width: 100%;
-            max-width: 200px;
-            height: 20px;
-            background-color: #333;
-            margin: 10px auto;
-            position: relative;
             border-radius: 10px;
-            overflow: hidden;
         }
-        #energyLevel {
-            height: 100%;
-            background-color: green;
-            width: 100%;
-            transition: width 0.3s;
-        }
-        #message {
-            margin-top: 10px;
-            font-size: 16px;
-            color: #ffcc00;
-        }
+        /* Buttons */
         .game-button {
-            padding: 10px 20px;
-            background: rgba(41, 20, 78, 0.8);
+            padding: 15px 30px;
             border: none;
             color: #fff;
+            background-color: rgba(41, 20, 78, 0.8);
+            font-size: 24px;
             cursor: pointer;
-            margin: 5px;
-            border-radius: 5px;
-            font-size: 16px;
+            border-radius: 50px;
             transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 2px;
             box-shadow: 0 0 15px rgba(157, 141, 241, 0.5);
+            margin: 10px;
         }
         .game-button:hover {
-            background: rgba(61, 30, 118, 0.8);
+            background-color: rgba(61, 30, 118, 0.9);
             box-shadow: 0 0 25px rgba(157, 141, 241, 0.8);
+            transform: scale(1.05);
         }
         .game-button:disabled {
             background-color: #333;
             cursor: not-allowed;
             box-shadow: none;
         }
+        .button-container {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
         /* Star animation */
         .star {
-            position: absolute;
+            position: fixed;
             background-color: #ffffff;
             border-radius: 50%;
             animation: twinkle 4s infinite;
@@ -158,25 +180,51 @@
             0%, 100% { opacity: 0.3; }
             50% { opacity: 1; }
         }
+        /* Message Styles */
+        #message {
+            margin-top: 20px;
+            font-size: 24px;
+            color: #ffcc00;
+            text-align: center;
+            text-shadow: 0 0 10px rgba(255, 204, 0, 0.7);
+        }
+        /* Home Button */
+        .home-button {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background-color: rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 10px 20px;
+            text-decoration: none;
+            border-radius: 30px;
+            font-size: 16px;
+            z-index: 1000;
+            transition: all 0.3s ease;
+        }
+        .home-button:hover {
+            background-color: rgba(255, 255, 255, 0.3);
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.5);
+        }
     </style>
 </head>
 <body>
     <div class="cosmic-bg"></div>
-    <div class="container">
-        <!-- Removed the logo section -->
-        <h1>Galactic Path</h1>
-        <p class="tagline">Navigate your spaceship through the cosmos!</p>
-        <div id="gameContainer">
-            <div id="grid"></div>
-            <div id="info">
-                <div id="energyBar">
-                    <div id="energyLevel"></div>
-                </div>
-                <div>Level: <span id="levelText">1</span></div>
-                <div>Energy: <span id="energyText">50</span></div>
-                <div>Score: <span id="scoreText">100</span></div>
+    <a href="index.html" class="home-button">Home</a>
+    <div class="scroll-container">
+        <div class="container">
+            <h1>Galactic Path</h1>
+            <div class="instructions">
+                Navigate your spaceship through the cosmos while avoiding moving asteroids!
+            </div>
+            <div class="game-info">
+                <div class="level">Level: <span id="levelText">1</span></div>
+                <div class="score">Energy: <span id="energyText">50</span></div>
+            </div>
+            <div id="gameContainer">
+                <div id="grid"></div>
                 <div id="message"></div>
-                <div>
+                <div class="button-container">
                     <button class="game-button" id="upButton">Up</button>
                     <button class="game-button" id="downButton">Down</button>
                     <button class="game-button" id="leftButton">Left</button>
@@ -186,12 +234,9 @@
         </div>
     </div>
 
-    <!-- Audio element for button click sound -->
-    <audio id="clickSound">
-        <source src="button_click.mp3" type="audio/mpeg">
-    </audio>
-
+    <!-- Game Script -->
     <script>
+        // Starry Background
         function createStars() {
             const body = document.body;
             for (let i = 0; i < 100; i++) {
@@ -205,29 +250,21 @@
                 body.appendChild(star);
             }
         }
-
-        function playSound() {
-            document.getElementById('clickSound').play();
-        }
-
         createStars();
 
-        // Game variables
+        // Game Variables
         let level = 1;
         let gridSize = 5;
         const initialEnergy = 50;
         const energyPerMove = 1;
         let energy = initialEnergy;
-        let score = 100;
         let grid = [];
         let spaceshipPosition = { x: 0, y: 0 }; // Will be set in initGame()
         let goalPosition = { x: 0, y: 0 }; // Will be set in initGame()
-
-        // Moving obstacles
         let movingObstacles = [];
         let obstacleInterval;
 
-        // Initialize the game
+        // Initialize Game
         function initGame() {
             // Adjust grid size based on level
             if (level <= 5) {
@@ -237,9 +274,8 @@
             } else {
                 gridSize = 7;
             }
-            // Reset game variables
+            // Reset variables
             energy = initialEnergy;
-            score = 100;
             grid = [];
             movingObstacles = [];
             spaceshipPosition = { x: 0, y: gridSize - 1 }; // Starts at bottom-left
@@ -247,30 +283,30 @@
 
             // Update level display
             document.getElementById('levelText').innerText = level;
+            document.getElementById('energyText').innerText = energy;
 
-            // Clear previous interval if any
+            // Clear previous interval
             if (obstacleInterval) {
                 clearInterval(obstacleInterval);
             }
 
             initGrid();
-            updateEnergyDisplay();
             enableButtons();
 
             // Start obstacle movement
             obstacleInterval = setInterval(() => {
                 updateMovingObstacles();
                 updateSpaceshipPosition();
-            }, Math.max(300, 1000 - (level * 50))); // Obstacles move faster as levels increase
+            }, Math.max(500, 1500 - (level * 100))); // Obstacles move faster as levels increase
         }
 
-        // Initialize the game grid
+        // Initialize Grid
         function initGrid() {
             const gridElement = document.getElementById('grid');
             gridElement.innerHTML = '';
             gridElement.style.gridTemplateColumns = `repeat(${gridSize}, 60px)`;
             gridElement.style.gridTemplateRows = `repeat(${gridSize}, 60px)`;
-            gridElement.style.width = `${gridSize * 65}px`; // Adjust container width
+            gridElement.style.width = `${gridSize * 65}px`;
             grid = [];
 
             for (let y = 0; y < gridSize; y++) {
@@ -295,9 +331,8 @@
             updateSpaceshipPosition();
         }
 
-        // Place moving obstacles on the grid
+        // Place Moving Obstacles
         function placeMovingObstacles() {
-            // Number of moving obstacles based on level
             let numberOfObstacles;
             if (level <= 5) {
                 numberOfObstacles = 2;
@@ -354,7 +389,7 @@
             }
         }
 
-        // Update moving obstacles' positions
+        // Update Moving Obstacles
         function updateMovingObstacles() {
             movingObstacles.forEach(obstacle => {
                 // Remove existing asteroid
@@ -381,7 +416,7 @@
             });
         }
 
-        // Update the spaceship's position on the grid
+        // Update Spaceship Position
         function updateSpaceshipPosition() {
             // Remove existing spaceship
             document.querySelectorAll('.spaceship').forEach(el => el.remove());
@@ -389,13 +424,14 @@
             const cell = grid[spaceshipPosition.y][spaceshipPosition.x];
             const spaceship = document.createElement('div');
             spaceship.classList.add('spaceship');
+            spaceship.innerText = '🚀'; // Add a rocket emoji for the spaceship
             cell.appendChild(spaceship);
 
             checkCollision();
             checkCurrentCell();
         }
 
-        // Check for collisions with moving obstacles
+        // Check Collision
         function checkCollision() {
             let collision = false;
             movingObstacles.forEach(obstacle => {
@@ -412,7 +448,7 @@
             }
         }
 
-        // Check the current cell for goal
+        // Check Current Cell
         function checkCurrentCell() {
             const cell = grid[spaceshipPosition.y][spaceshipPosition.x];
 
@@ -425,33 +461,21 @@
             }
         }
 
-        // Update energy and score displays
+        // Update Energy Display
         function updateEnergyDisplay() {
             document.getElementById('energyText').innerText = energy;
-            document.getElementById('scoreText').innerText = score;
-            const energyLevel = document.getElementById('energyLevel');
-            const energyPercentage = (energy / initialEnergy) * 100;
-            energyLevel.style.width = energyPercentage + '%';
-            if (energyPercentage > 60) {
-                energyLevel.style.backgroundColor = 'green';
-            } else if (energyPercentage > 30) {
-                energyLevel.style.backgroundColor = 'yellow';
-            } else {
-                energyLevel.style.backgroundColor = 'red';
-            }
         }
 
-        // Update energy and score after each move
+        // Update Energy
         function updateEnergy() {
             energy -= energyPerMove;
-            score -= energyPerMove;
             if (energy <= 0) {
                 endGame(false);
             }
             updateEnergyDisplay();
         }
 
-        // End the game
+        // End Game
         function endGame(won) {
             disableButtons();
             clearInterval(obstacleInterval);
@@ -467,7 +491,7 @@
             }
         }
 
-        // Disable movement buttons
+        // Disable Buttons
         function disableButtons() {
             document.getElementById('upButton').disabled = true;
             document.getElementById('downButton').disabled = true;
@@ -475,7 +499,7 @@
             document.getElementById('rightButton').disabled = true;
         }
 
-        // Enable movement buttons
+        // Enable Buttons
         function enableButtons() {
             document.getElementById('upButton').disabled = false;
             document.getElementById('downButton').disabled = false;
@@ -483,7 +507,7 @@
             document.getElementById('rightButton').disabled = false;
         }
 
-        // Movement functions
+        // Movement Functions
         function moveUp() {
             if (spaceshipPosition.y > 0) {
                 spaceshipPosition.y -= 1;
@@ -491,7 +515,6 @@
                 updateEnergy();
             }
         }
-
         function moveDown() {
             if (spaceshipPosition.y < gridSize - 1) {
                 spaceshipPosition.y += 1;
@@ -499,7 +522,6 @@
                 updateEnergy();
             }
         }
-
         function moveLeft() {
             if (spaceshipPosition.x > 0) {
                 spaceshipPosition.x -= 1;
@@ -507,7 +529,6 @@
                 updateEnergy();
             }
         }
-
         function moveRight() {
             if (spaceshipPosition.x < gridSize - 1) {
                 spaceshipPosition.x += 1;
@@ -516,13 +537,13 @@
             }
         }
 
-        // Event listeners for buttons
+        // Event Listeners
         document.getElementById('upButton').addEventListener('click', moveUp);
         document.getElementById('downButton').addEventListener('click', moveDown);
         document.getElementById('leftButton').addEventListener('click', moveLeft);
         document.getElementById('rightButton').addEventListener('click', moveRight);
 
-        // Start the game
+        // Start Game
         initGame();
     </script>
 </body>
