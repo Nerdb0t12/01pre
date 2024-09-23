@@ -1,18 +1,71 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Galactic Path</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Cosmic Brain - Galactic Path</title>
     <style>
-        body {
-            margin: 0;
-            background-color: black;
-            color: white;
+        /* Existing styles from your UI */
+        body, html {
             font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            overflow: hidden;
+            background-color: #0a0a2a;
+            color: #ffffff;
+        }
+        .cosmic-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at center, #1a1a4a 0%, #0a0a2a 100%);
+            z-index: -1;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100%;
+            box-sizing: border-box;
+        }
+        .logo-container {
+            width: 220px;
+            height: 220px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 50%, rgba(255,255,255,0) 70%);
+            border-radius: 50%;
+        }
+        .logo {
+            width: 200px;
+            height: auto;
+            filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.5));
+        }
+        h1 {
+            font-size: 36px;
+            font-weight: bold;
+            margin: 10px 0;
             text-align: center;
         }
+        .tagline {
+            font-size: 18px;
+            color: #9d8df1;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        /* Styles for the game */
         #gameContainer {
-            margin: 20px auto;
-            width: 400px;
+            width: 100%;
+            max-width: 400px;
+            margin: 0 auto;
         }
         #grid {
             display: grid;
@@ -20,13 +73,16 @@
             grid-template-rows: repeat(5, 60px);
             gap: 5px;
             justify-content: center;
+            margin-top: 20px;
         }
         .cell {
             width: 60px;
             height: 60px;
-            background-color: #1a1a1a;
+            background-color: rgba(26, 26, 74, 0.8);
             border: 1px solid #333;
             position: relative;
+            border-radius: 5px;
+            overflow: hidden;
         }
         .cell.goal {
             background-color: #003366;
@@ -34,7 +90,8 @@
         .spaceship {
             width: 100%;
             height: 100%;
-            background-color: #ffffff;
+            background-image: url('spaceship.png'); /* Use your spaceship image */
+            background-size: cover;
             position: absolute;
             top: 0;
             left: 0;
@@ -43,7 +100,8 @@
         .asteroid {
             width: 100%;
             height: 100%;
-            background-color: #aa0000;
+            background-image: url('asteroid.png'); /* Use your asteroid image */
+            background-size: cover;
             position: absolute;
             top: 0;
             left: 0;
@@ -53,62 +111,123 @@
             position: absolute;
             width: 100%;
             height: 100%;
-            border: 2px dotted #aa0000;
+            border: 2px dotted rgba(170, 0, 0, 0.7);
             box-sizing: border-box;
+            border-radius: 5px;
         }
         #info {
             margin-top: 20px;
+            text-align: center;
         }
         #energyBar {
-            width: 200px;
+            width: 100%;
+            max-width: 200px;
             height: 20px;
             background-color: #333;
             margin: 10px auto;
             position: relative;
+            border-radius: 10px;
+            overflow: hidden;
         }
         #energyLevel {
             height: 100%;
             background-color: green;
             width: 100%;
+            transition: width 0.3s;
         }
         #message {
             margin-top: 10px;
+            font-size: 16px;
+            color: #ffcc00;
         }
-        button {
+        .game-button {
             padding: 10px 20px;
-            background-color: #0066cc;
+            background: rgba(41, 20, 78, 0.8);
             border: none;
-            color: white;
+            color: #fff;
             cursor: pointer;
             margin: 5px;
+            border-radius: 5px;
+            font-size: 16px;
+            transition: all 0.3s;
+            box-shadow: 0 0 15px rgba(157, 141, 241, 0.5);
         }
-        button:disabled {
+        .game-button:hover {
+            background: rgba(61, 30, 118, 0.8);
+            box-shadow: 0 0 25px rgba(157, 141, 241, 0.8);
+        }
+        .game-button:disabled {
             background-color: #333;
             cursor: not-allowed;
+            box-shadow: none;
+        }
+        /* Star animation */
+        .star {
+            position: absolute;
+            background-color: #ffffff;
+            border-radius: 50%;
+            animation: twinkle 4s infinite;
+        }
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 1; }
         }
     </style>
 </head>
 <body>
-    <h1>Galactic Path</h1>
-    <div id="gameContainer">
-        <div id="grid"></div>
-        <div id="info">
-            <div id="energyBar">
-                <div id="energyLevel"></div>
-            </div>
-            <div>Level: <span id="levelText">1</span></div>
-            <div>Energy: <span id="energyText">50</span></div>
-            <div>Score: <span id="scoreText">100</span></div>
-            <div id="message"></div>
-            <div>
-                <button id="upButton">Up</button>
-                <button id="downButton">Down</button>
-                <button id="leftButton">Left</button>
-                <button id="rightButton">Right</button>
+    <div class="cosmic-bg"></div>
+    <div class="container">
+        <div class="logo-container">
+            <img src="cosmic_brain_logo.png" alt="Cosmic Brain Logo" class="logo">
+        </div>
+        <h1>Galactic Path</h1>
+        <p class="tagline">Navigate your spaceship through the cosmos!</p>
+        <div id="gameContainer">
+            <div id="grid"></div>
+            <div id="info">
+                <div id="energyBar">
+                    <div id="energyLevel"></div>
+                </div>
+                <div>Level: <span id="levelText">1</span></div>
+                <div>Energy: <span id="energyText">50</span></div>
+                <div>Score: <span id="scoreText">100</span></div>
+                <div id="message"></div>
+                <div>
+                    <button class="game-button" id="upButton">Up</button>
+                    <button class="game-button" id="downButton">Down</button>
+                    <button class="game-button" id="leftButton">Left</button>
+                    <button class="game-button" id="rightButton">Right</button>
+                </div>
             </div>
         </div>
     </div>
+
+    <!-- Audio element for button click sound -->
+    <audio id="clickSound">
+        <source src="button_click.mp3" type="audio/mpeg">
+    </audio>
+
     <script>
+        function createStars() {
+            const body = document.body;
+            for (let i = 0; i < 100; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+                star.style.width = `${Math.random() * 2 + 1}px`;
+                star.style.height = star.style.width;
+                star.style.left = `${Math.random() * 100}%`;
+                star.style.top = `${Math.random() * 100}%`;
+                star.style.animationDelay = `${Math.random() * 4}s`;
+                body.appendChild(star);
+            }
+        }
+
+        function playSound() {
+            document.getElementById('clickSound').play();
+        }
+
+        createStars();
+
         // Game variables
         let level = 1;
         let gridSize = 5;
